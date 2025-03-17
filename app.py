@@ -19,6 +19,14 @@ app = Flask(__name__)
 # Restrict CORS to trusted domains
 CORS(app, resources={r"/transactions": {"origins": ["https://skyalcu.com"]}})
 
+# Enable logging
+logging.basicConfig(level=logging.DEBUG)
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    app.logger.error(f"Unhandled exception: {e}", exc_info=True)
+    return {"error": "An internal error occurred"}, 500
+    
 # Database connection pooling
 def get_db_connection():
     if 'db' not in g:
@@ -64,3 +72,10 @@ def get_transactions():
     except Exception as e:
         logging.error(f"Error: {str(e)}")
         return jsonify({"error": "An internal error occurred"}), 500
+        
+if __name__ == "__main__":
+    app.run(debug=True)
+
+    
+
+
