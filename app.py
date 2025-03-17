@@ -23,7 +23,7 @@ CORS(app, resources={r"/transactions": {"origins": ["https://skyalcu.com"]}})
 def get_db_connection():
     if 'db' not in g:
         g.db = pyodbc.connect(
-            f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password};TrustServerCertificate=yes",
+            f"DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1};SERVER={server};DATABASE={database};UID={username};PWD={password};TrustServerCertificate=yes",
             autocommit=True
         )
     return g.db
