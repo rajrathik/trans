@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g,  render_template
 from flask_cors import CORS
 import os
 import pyodbc
 import logging
 from dotenv import load_dotenv
+from flask import send_from_directory
 
 # Load environment variables (not needed in Azure App Service, but useful for local development)
 load_dotenv(".env")
