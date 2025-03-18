@@ -21,15 +21,18 @@ if not all([server, database, username, password]):
 app = Flask(__name__)
 
 # Restrict CORS to the trusted domain
-CORS(app, resources={r"/transactions": {"origins": ["https://skyalcu.com"]}})
+CORS(app)
 
 # Enable logging
 logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def home():
-    """ Root endpoint to confirm API is running (for AlwaysOn requests) """
-    return jsonify({"message": "API is running"}), 200
+    return render_template("index.html")  # This loads templates/index.html
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory("static", "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -43,15 +46,15 @@ def get_db_connection():
     if 'db' not in g:
         try:
             g.db = pyodbc.connect(
-                "DRIVER={ODBC Driver 17 for SQL Server};"
-                f"SERVER={server};"
-                f"DATABASE={database};"
-                f"UID={username};"
-                f"PWD={password};"
-                "TrustServerCertificate=yes",
-                "Connection Timeout=240;",
-                autocommit=True
-            )
+            "DRIVER={ODBC Driver 18 for SQL Server};"
+            f"SERVER={server};"
+            f"DATABASE={database};"
+            f"UID={username};"
+            f"PWD={password};"
+            "TrustServerCertificate=yes;"
+            "Connection Timeout=240;",
+            autocommit=True
+        )
         except pyodbc.Error as e:
             app.logger.error(f"Database connection error: {e}")
             raise
@@ -72,12 +75,10 @@ def get_transactions():
         if not account_number:
             return jsonify({"error": "Missing AccountNumber parameter"}), 400
 
-        conn = get_db_connection()
-        print(account_number)
+        conn = get_db_connection() 
         cursor = conn.cursor()
         cursor.execute("EXEC GetTransDetail ?", account_number)
-        rows = cursor.fetchall()
-        print(rows)
+        rows = cursor.fetchall() 
 
         # Convert to JSON
         columns = [column[0] for column in cursor.description]
@@ -95,6 +96,11 @@ def get_transactions():
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
         return jsonify({"error": "An internal error occurred"}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
