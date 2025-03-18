@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Viewer</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #004080;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        table {
+            width: 90%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: white;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #0073e6;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 300px;
+            text-align: left;
+        }
+        .popup-header {
+            cursor: grab;
+            background: #0073e6;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            user-select: none;
+        }
+        .close-btn {
+            display: block;
+            margin: 10px auto;
+            padding: 5px 10px;
+            background: #d9534f;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 5px;
+        }
+    </style>
+    <script>
+	
+        $(document).ready(function () {
+            function formatDate(dateString) {
+                let date = new Date(dateString);
+                let month = (date.getMonth() + 1).toString().padStart(2, '0');
+                let day = date.getDate().toString().padStart(2, '0');
+                let year = date.getFullYear();
+                return `${month}/${day}/${year}`;
+            }
+            
+            function updatePopup() {
+                let selectedTransactions = [];
+                $(".rowSelect:checked").each(function () {
+                    selectedTransactions.push({
+                        balanceChange: parseFloat($(this).data("balancechange")),
+                        monthNumber: parseInt($(this).data("monthnumber"))
+                    });
+                });
+                
+                let avg3 = (selectedTransactions.filter(t => t.monthNumber <= 3).reduce((a, b) => a + b.balanceChange, 0))/3.0;
+                let avg4 = (selectedTransactions.filter(t => t.monthNumber <= 4).reduce((a, b) => a + b.balanceChange, 0))/4.0;
+                let avg5 = (selectedTransactions.filter(t => t.monthNumber <= 5).reduce((a, b) => a + b.balanceChange, 0))/5.0;
+                let avg6 = (selectedTransactions.filter(t => t.monthNumber <= 6).reduce((a, b) => a + b.balanceChange, 0))/6.0;
+                let avg12 = (selectedTransactions.filter(t => t.monthNumber <= 12).reduce((a, b) => a + b.balanceChange, 0))/12.0;
+                
+                let popupContent = `<div class='popup' id='popupBox'>
+                    <div class='popup-header'>
+                        Avg Direct Deposit
+                    </div>
+                    <p>Last 3 months: $${avg3.toFixed(2)}</p>
+                    <p>Last 4 months: $${avg4.toFixed(2)}</p>
+                    <p>Last 5 months: $${avg5.toFixed(2)}</p>
+                    <p>Last 6 months: $${avg6.toFixed(2)}</p>
+                    <p>Last 12 months: $${avg12.toFixed(2)}</p>
+                    <button class='close-btn' onclick='$("#popupBox").remove()'>Close</button>
+                </div>`;
+                
+                if ($("#popupBox").length) {
+                    $("#popupBox").replaceWith(popupContent);
+                } else {
+                    $("body").append(popupContent);
+                    makePopupDraggable();
+                }
+            }
+            
+            function makePopupDraggable() {
+                let popup = $("#popupBox");
+                let isDragging = false;
+                let offsetX, offsetY;
+
+                popup.on("mousedown", ".popup-header", function (e) {
+                    isDragging = true;
+                    offsetX = e.clientX - popup.offset().left;
+                    offsetY = e.clientY - popup.offset().top;
+                    popup.css("cursor", "grabbing");
+                });
+
+                $(document).mousemove(function (e) {
+                    if (isDragging) {
+                        popup.css({
+                            left: e.clientX - offsetX + "px",
+                            top: e.clientY - offsetY + "px",
+                            transform: "none"
+                        });
+                    }
+                });
+
+                $(document).mouseup(function () {
+                    isDragging = false;
+                    popup.css("cursor", "grab");
+                });
+            }
+            
+            $("#fetchData").click(function () {
+                let accountNumber = $("#accountNumber").val();
+                if (!accountNumber) {
+                    alert("Please enter an account number");
+                    return;
+                }
+                $.get("/transactions", { AccountNumber: accountNumber }, function (data) { 
+                    let tableBody = "";
+                    data.forEach((row) => {
+                        let checked = row.Classified === "Salary" && row.MonthNumber !== 0 ? "checked" : "";
+                        let balanceChange = parseFloat(row.BALANCECHANGE).toFixed(2);
+                        let formattedDate = formatDate(row.PostDate);
+                        let formattedMonth = formatDate(row.TranscationPostMonth);
+                        tableBody += `<tr>
+                            <td><input type='checkbox' class='rowSelect' ${checked} data-balancechange='${balanceChange}' data-monthnumber='${row.MonthNumber}'></td>
+                            <td>${row.MonthNumber}</td>
+                            <td>${row.TransactionType}</td>
+                            <td>${formattedDate}</td>
+                            <td>$${balanceChange}</td>
+                            <td>${row.AdditionalInfo}</td>
+                            <td>${formattedMonth}</td>
+                            <td>${row.Classified}</td>
+                            <td>${row.ParentAccount}</td>
+                        </tr>`;
+                    });
+                    $("#transactions tbody").html(tableBody);
+                    updatePopup();
+                });
+            });
+            
+            $(document).on("change", ".rowSelect", function () {
+                updatePopup();
+            });
+        });
+    </script>
+</head>
+<body>
+    <h2>Transaction Viewer</h2>
+    <label for="accountNumber">Account Number:</label>
+    <input type="text" id="accountNumber" placeholder="Enter Account Number" />
+    <button id="fetchData">Submit</button>
+    
+    <table id="transactions">
+        <thead>
+            <tr>
+                <th>Select</th>
+                <th>Month Index</th>
+                <th>Transaction Type</th>
+                <th>Post Date</th>
+                <th>Balance Change</th>
+                <th>Additional Info</th>
+                <th>Transaction Month</th>
+                <th>Classified</th>
+                <th>Parent Account</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</body>
+</html>
