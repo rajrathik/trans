@@ -43,7 +43,7 @@ def get_db_connection():
     if 'db' not in g:
         try:
             g.db = pyodbc.connect(
-                "DRIVER={Microsoft ODBC Driver 17 for SQL Server};"
+                "DRIVER={ODBC Driver 17 for SQL Server};"
                 f"SERVER={server};"
                 f"DATABASE={database};"
                 f"UID={username};"
