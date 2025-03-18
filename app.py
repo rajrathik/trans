@@ -49,6 +49,7 @@ def get_db_connection():
                 f"UID={username};"
                 f"PWD={password};"
                 "TrustServerCertificate=yes",
+                "Connection Timeout=240;"
                 autocommit=True
             )
         except pyodbc.Error as e:
