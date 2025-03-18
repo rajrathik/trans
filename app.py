@@ -43,7 +43,7 @@ def get_db_connection():
     if 'db' not in g:
         try:
             g.db = pyodbc.connect(
-                "DRIVER={/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.4.1};"
+                "DRIVER={ODBC Driver 17 for SQL Server};"
                 f"SERVER={server};"
                 f"DATABASE={database};"
                 f"UID={username};"
@@ -73,9 +73,11 @@ def get_transactions():
             return jsonify({"error": "Missing AccountNumber parameter"}), 400
 
         conn = get_db_connection()
+        print(account_number)
         cursor = conn.cursor()
         cursor.execute("EXEC GetTransDetail ?", account_number)
         rows = cursor.fetchall()
+        print(rows)
 
         # Convert to JSON
         columns = [column[0] for column in cursor.description]
